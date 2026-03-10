@@ -1,0 +1,21 @@
+name: Compile Sketch
+
+on: [push, pull_request]
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compile sketches
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: esp8266:esp8266:nodemcuv2
+          libraries: |
+            - name: DHT sensor library
+          sketch-paths: |
+            - .
+          enable-deltas-report: true
