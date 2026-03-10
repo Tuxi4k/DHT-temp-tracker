@@ -1,4 +1,4 @@
-name: Compile ESP8266 Firmware
+name: Compile sketch for ESP8266 (nodemcu v3)
 
 on:
   push:
@@ -10,14 +10,8 @@ jobs:
   compile:
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        fqbn: [
-          "esp8266:esp8266:nodemcuv2",  # NodeMCU V3
-        ]
-        
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install Arduino CLI
@@ -25,7 +19,7 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
           sudo mv bin/arduino-cli /usr/local/bin/
 
-      - name: Configure and install ESP8266
+      - name: Setup ESP8266
         run: |
           arduino-cli config init
           arduino-cli config add board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
@@ -33,7 +27,5 @@ jobs:
           arduino-cli core install esp8266:esp8266
           arduino-cli lib install "DHT sensor library"
 
-      - name: Compile sketch
-        run: |
-          arduino-cli compile --fqbn ${{ matrix.fqbn }} --verbose .
-          
+      - name: Compile
+        run: arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 --verbose .
