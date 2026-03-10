@@ -1,21 +1,66 @@
-name: Compile Sketch
+name: Compile Arduino Sketches
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   compile:
     runs-on: ubuntu-latest
     
+    strategy:
+      matrix:
+        fqbn: [
+          "esp8266:esp8266:nodemcuv2",  # NodeMCU V3
+          "esp8266:esp8266:d1",          # Wemos D1
+          "esp8266:esp8266:generic"      # Generic ESP8266
+        ]
+        
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Compile sketches
-        uses: arduino/compile-sketches@v1
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          fqbn: esp8266:esp8266:nodemcuv2
-          libraries: |
-            - name: DHT sensor library
-          sketch-paths: |
-            - .
-          enable-deltas-report: true
+          python-version: '3.11'
+
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          sudo mv bin/arduino-cli /usr/local/bin/
+
+      - name: Configure Arduino CLI
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+
+      - name: Update core index
+        run: |
+          arduino-cli core update-index
+
+      - name: Install ESP8266 core
+        run: |
+          arduino-cli core install esp8266:esp8266
+
+      - name: Install DHT library
+        run: |
+          arduino-cli lib install "DHT sensor library"
+
+      - name: Verify core and libs installed
+        run: |
+          arduino-cli core list
+          arduino-cli lib list
+
+      - name: Compile sketch
+        run: |
+          arduino-cli compile --fqbn ${{ matrix.fqbn }} --verbose .
+          
+      - name: Upload compiled binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.fqbn }}
+          path: ./build/*.bin
+        if: success()
